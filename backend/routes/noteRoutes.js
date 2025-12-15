@@ -59,29 +59,26 @@ router.get('/', async (req, res) => {
                 (SELECT COUNT(*) FROM likes WHERE note_id = n.note_id AND user_id = ?) AS is_liked,
                 (SELECT COUNT(*) FROM likes WHERE note_id = n.note_id) AS total_likes,
                 COUNT(DISTINCT c.comment_id) AS comment_count,
-                (
-                    SELECT JSON_ARRAYAGG(t.tag_name)
-                    FROM note_tags nt
-                    JOIN tags t ON nt.tag_id = t.tag_id
-                    WHERE nt.note_id = n.note_id
-                ) AS tags
+                GROUP_CONCAT(DISTINCT t.tag_name) AS tags
             FROM notes AS n
             JOIN subjects AS s ON n.subject_id = s.subject_id
             JOIN users AS u ON n.uploader_id = u.user_id
             LEFT JOIN comments AS c ON n.note_id = c.note_id
+            LEFT JOIN note_tags nt ON n.note_id = nt.note_id
+            LEFT JOIN tags t ON nt.tag_id = t.tag_id
             ${whereSql}
             GROUP BY n.note_id, n.title, n.file_url, n.views, s.subject_code, s.subject_name, u.username
             ORDER BY n.created_at DESC;
         `, params);
 
-        // --- แปลง tags จาก JSON string → array ---
+        // --- แปลง tags จาก comma-separated string → array ---
         rows.forEach(row => {
-            if (typeof row.tags === "string") {
-                try {
-                    row.tags = JSON.parse(row.tags);
-                } catch {
-                    row.tags = [];
-                }
+            if (row.tags == null) {
+                row.tags = [];
+            } else if (typeof row.tags === 'string') {
+                row.tags = row.tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+            } else if (!Array.isArray(row.tags)) {
+                row.tags = [];
             }
         });
 
@@ -121,16 +118,13 @@ router.get('/user/:id', async (req, res) => {
                 (SELECT COUNT(*) FROM likes WHERE note_id = n.note_id) AS total_likes,
 
                 COUNT(DISTINCT c.comment_id) AS comment_count,
-                (
-                    SELECT JSON_ARRAYAGG(t.tag_name)
-                    FROM note_tags nt
-                    JOIN tags t ON nt.tag_id = t.tag_id
-                    WHERE nt.note_id = n.note_id
-                ) AS tags
+                GROUP_CONCAT(DISTINCT t.tag_name) AS tags
             FROM notes AS n
             JOIN users u ON n.uploader_id = u.user_id
             JOIN subjects s ON n.subject_id = s.subject_id
             LEFT JOIN comments c ON n.note_id = c.note_id
+            LEFT JOIN note_tags nt ON n.note_id = nt.note_id
+            LEFT JOIN tags t ON nt.tag_id = t.tag_id
             
             -- 🔥 กรองเฉพาะโน้ตที่ user คนนี้เป็นคนอัปโหลด
             WHERE n.uploader_id = ?
@@ -142,10 +136,14 @@ router.get('/user/:id', async (req, res) => {
         // ใส่ viewerUserId ตัวแรก (สำหรับ is_liked) และ targetUserId ตัวที่สอง (สำหรับ WHERE)
         const [rows] = await pool.query(sql, [viewerUserId, targetUserId]);
 
-        // แปลง Tags จาก JSON
+        // แปลง tags จาก comma-separated string → array
         rows.forEach(row => {
-            if (typeof row.tags === "string") {
-                try { row.tags = JSON.parse(row.tags); } catch { row.tags = []; }
+            if (row.tags == null) {
+                row.tags = [];
+            } else if (typeof row.tags === 'string') {
+                row.tags = row.tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+            } else if (!Array.isArray(row.tags)) {
+                row.tags = [];
             }
         });
 
@@ -181,18 +179,15 @@ router.get('/user/:id/likes', async (req, res) => {
                 (SELECT COUNT(*) FROM likes WHERE note_id = n.note_id) AS total_likes,
 
                 COUNT(DISTINCT c.comment_id) AS comment_count,
-                (
-                    SELECT JSON_ARRAYAGG(t.tag_name)
-                    FROM note_tags nt
-                    JOIN tags t ON nt.tag_id = t.tag_id
-                    WHERE nt.note_id = n.note_id
-                ) AS tags
+                GROUP_CONCAT(DISTINCT t.tag_name) AS tags
             FROM notes n
             -- 🔥 JOIN กับตาราง likes เพื่อเอาเฉพาะโน้ตที่ targetUser เคยไลก์
             JOIN likes l ON n.note_id = l.note_id 
             JOIN users u ON n.uploader_id = u.user_id
             JOIN subjects s ON n.subject_id = s.subject_id
             LEFT JOIN comments c ON n.note_id = c.note_id
+            LEFT JOIN note_tags nt ON n.note_id = nt.note_id
+            LEFT JOIN tags t ON nt.tag_id = t.tag_id
             
             -- 🔥 กรองจากตาราง likes
             WHERE l.user_id = ?
@@ -204,8 +199,12 @@ router.get('/user/:id/likes', async (req, res) => {
         const [rows] = await pool.query(sql, [viewerUserId, targetUserId]);
 
         rows.forEach(row => {
-            if (typeof row.tags === "string") {
-                try { row.tags = JSON.parse(row.tags); } catch { row.tags = []; }
+            if (row.tags == null) {
+                row.tags = [];
+            } else if (typeof row.tags === 'string') {
+                row.tags = row.tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+            } else if (!Array.isArray(row.tags)) {
+                row.tags = [];
             }
         });
 
@@ -349,8 +348,8 @@ router.post('/', Upload.fields([
             const tempCode = "NEW-" + Math.floor(Math.random() * 1000);
             
             const [newSub] = await pool.query(
-                'INSERT INTO subjects (subject_code, subject_name, faculty) VALUES (?, ?, ?)',
-                [tempCode, subject_name, 'General']
+                'INSERT INTO subjects (subject_code, subject_name) VALUES (?, ?)',
+                [tempCode, subject_name]
             );
             
             finalSubjectId = newSub.insertId; // ได้ ID ใหม่

@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS subjects (
     subject_id INT AUTO_INCREMENT PRIMARY KEY,
     subject_code VARCHAR(50) NOT NULL,
     subject_name VARCHAR(200) NOT NULL,
-    faculty VARCHAR(100)
+    -- faculty column removed
 );
 
 -- 3. สร้างตาราง tags
@@ -95,10 +95,10 @@ INSERT INTO users (username, nickname, email, password, role, faculty, major, fi
 ('student_c', 'Cat', 'cat@example.com', 'pass5678', 'user', 'Engineering', 'Software', 'avatar3.png');
 
 -- เพิ่มข้อมูล Subjects
-INSERT INTO subjects (subject_code, subject_name, faculty) VALUES
-('CS101', 'Intro to Computer Science', 'Science'),
-('ENG202', 'Database Systems', 'Engineering'),
-('GEN111', 'English for Communication', 'Liberal Arts');
+INSERT INTO subjects (subject_code, subject_name) VALUES
+('CS101', 'Intro to Computer Science'),
+('ENG202', 'Database Systems'),
+('GEN111', 'English for Communication');
 
 -- เพิ่มข้อมูล Tags
 INSERT INTO tags (tag_name) VALUES

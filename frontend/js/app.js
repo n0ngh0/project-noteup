@@ -286,7 +286,6 @@ const FetchProfileData = async () => {
                 joinDateEl.textContent = `เข้าร่วมเมื่อ ${thaiDate}`;
             }
             document.getElementById('stat-total-notes').innerText = user.stats.total_notes;
-            document.getElementById('stat-total-likes').innerText = user.stats.total_likes;
 
         } else {
             console.error("โหลดข้อมูลไม่สำเร็จ");

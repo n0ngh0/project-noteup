@@ -172,17 +172,16 @@ router.get('/profile/:id', async (req, res) => {
         const user = users[0];
         const sqlStats = `
             SELECT 
-                -- นับจำนวนโน้ตที่ user นี้อัปโหลด
                 (SELECT COUNT(*) FROM notes WHERE uploader_id = ?) AS total_notes,
-                
-                -- นับจำนวนไลก์รวมทั้งหมด ที่โน้ตของ user นี้ได้รับ
                 (SELECT COUNT(*) 
                  FROM likes l 
                  JOIN notes n ON l.note_id = n.note_id 
                  WHERE n.uploader_id = ?) AS total_likes
+                ,
+                (SELECT COUNT(*) FROM likes WHERE user_id = ?) AS total_likes_given
         `;
 
-        const [stats] = await pool.query(sqlStats, [id, id]);
+        const [stats] = await pool.query(sqlStats, [id, id, id]);
         user.stats = stats[0]; 
 
         // ส่งกลับทีเดียว
