@@ -42,7 +42,3 @@ npm start
 	- `main.html`, `upload.html`, `view-note.html`, `profile.html`, `edit-profile.html`
 	- `assets/`, `css/`, `js/`
 - `public/` — ไฟล์สาธารณะของเซิร์ฟเวอร์ (เช่นไฟล์ที่อัปโหลด)
-
-## การพัฒนาเพิ่มเติม
-- ปรับแต่งการเชื่อมต่อฐานข้อมูลใน `backend/config/database.js`
-- เพิ่มการตรวจสอบสิทธิ์ผู้ใช้ (authentication) หากต้องการระบบล็อกอินจริง
